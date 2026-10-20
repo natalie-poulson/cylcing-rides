@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Interval Ride</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&family=Barlow:wght@400;600&display=swap">
+<style>
+:root{--bg:#14111f;--panel:#1f1a30;--text:#f4f1fa;--mute:#a59dbd;--c:#2ec4b6;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:400 16px/1.4 Barlow,system-ui,sans-serif}
+.num,h1,h2,.big{font-family:"Barlow Condensed","Arial Narrow",Impact,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:20px 18px 28px}
+h1{font-size:44px;font-weight:800;margin:8px 0 4px;letter-spacing:.5px}
+.sub{color:var(--mute);margin:0 0 22px}
+.card{background:var(--panel);border-radius:14px;padding:18px;margin-bottom:14px}
+.row{display:flex;justify-content:space-between;align-items:baseline}
+.row b{font-family:"Barlow Condensed",sans-serif;font-size:34px;font-weight:700}
+input[type=range]{width:100%;margin:12px 0 2px;accent-color:#ff9f1c;height:28px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.seg button{background:#2c2542;border:2px solid transparent;border-radius:10px;padding:12px 4px;font-weight:600}
+.seg button[aria-pressed=true]{border-color:#ff9f1c;background:#3a2f55}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.lvl{color:var(--mute);font-size:14px;margin:10px 0 0}
+.plan{display:flex;align-items:flex-end;gap:2px;height:84px;margin-top:12px}
+.plan i{display:block;border-radius:3px 3px 0 0;min-width:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:13px;color:var(--mute)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--k);margin-right:6px}
+.go{width:100%;background:#ff9f1c;color:#1b1200;border:0;border-radius:14px;padding:18px;font:800 28px "Barlow Condensed",sans-serif;letter-spacing:1px}
+#ride{display:none;min-height:100vh;min-height:100dvh;background:var(--c);transition:background .5s;position:relative;flex-direction:column;padding:14px 16px 18px;color:#0f0b1a}
+#ride.on{display:flex}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.name{font:800 clamp(40px,11vw,76px)/1 "Barlow Condensed",sans-serif;margin:6px 0 0;text-transform:none}
+.timer{font:800 clamp(110px,34vw,260px)/.9 "Barlow Condensed",sans-serif;text-align:center;margin:8px 0;font-variant-numeric:tabular-nums}
+.timer.pulse{animation:p .5s}
+@keyframes p{0%{transform:scale(1.08)}100%{transform:scale(1)}}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:rgba(15,11,26,.82);color:#fff;border-radius:16px;padding:12px 14px;text-align:center}
+.stat small{display:block;font-weight:600;color:#d6d0e8;font-size:15px}
+.stat .big{font-size:clamp(46px,14vw,92px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.stat em{font-style:normal;font-size:14px;color:#d6d0e8}
+.next{margin:12px 0 8px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.bar{display:flex;gap:2px;height:14px}
+.bar div{flex:var(--d);background:rgba(15,11,26,.25);border-radius:3px;overflow:hidden}
+.bar div b{display:block;height:100%;width:0;background:#0f0b1a}
+.ctl{display:flex;gap:10px;margin-top:12px}
+.ctl button{flex:1;border:0;border-radius:12px;padding:14px;font-weight:700;background:rgba(15,11,26,.82);color:#fff}
+#flash{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:var(--c);z-index:5;padding:20px;pointer-events:none}
+#flash.show{display:flex;animation:f 2.4s forwards}
+#flash .big{font-size:clamp(70px,22vw,170px);font-weight:800;line-height:.95}
+#flash p{font:700 clamp(24px,7vw,44px) "Barlow Condensed",sans-serif;margin:10px 0 0}
+@keyframes f{0%{opacity:0;transform:scale(.9)}12%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+#done{display:none;text-align:center;padding-top:60px}
+@media (prefers-reduced-motion:reduce){#flash.show,.timer.pulse{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap" id="setup">
+  <h1>Interval ride</h1>
+  <p class="sub">Set your length and level, then clip in.</p>
+  <div class="card">
+    <div class="row"><label for="len">Ride length</label><b id="lenOut">20 min</b></div>
+    <input type="range" id="len" min="5" max="60" step="5" value="20">
+  </div>
+  <div class="card">
+    <div class="row"><span id="sl">Ride style</span></div>
+    <div class="seg two" role="group" aria-labelledby="sl" id="styles">
+      <button aria-pressed="true" data-s="int">Intervals</button>
+      <button aria-pressed="false" data-s="hill">Hill climb</button>
+      <button aria-pressed="false" data-s="end">Endurance</button>
+      <button aria-pressed="false" data-s="spr">Sprints</button>
+      <button aria-pressed="false" data-s="tab">Tabata</button>
+      <button aria-pressed="false" data-s="hh">Heart health</button>
+    </div>
+    <p class="lvl" id="styleTxt"></p>
+  </div>
+  <div class="card">
+    <div class="row"><span id="dl">Difficulty</span></div>
+    <div class="seg" role="group" aria-labelledby="dl" id="lvls">
+      <button aria-pressed="true" data-l="b">Beginner</button>
+      <button aria-pressed="false" data-l="i">Intermediate</button>
+      <button aria-pressed="false" data-l="a">Advanced</button>
+    </div>
+    <p class="lvl" id="lvlTxt"></p>
+  </div>
+  <div class="card">
+    <div class="row"><span>Ride profile</span><span id="segCount" class="sub" style="margin:0"></span></div>
+    <div class="plan" id="plan" aria-hidden="true"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <button class="go" id="start">Start ride</button>
+</div>
+
+<div id="ride" aria-live="off">
+  <div class="top"><span id="segOf"></span><span id="elapsed"></span></div>
+  <h2 class="name" id="name"></h2>
+  <div class="timer" id="timer" role="timer">0:00</div>
+  <div class="stats">
+    <div class="stat"><small>Cadence</small><div class="big" id="cad"></div><em>rpm</em></div>
+    <div class="stat"><small>Resistance</small><div class="big" id="res"></div><em>target range</em></div>
+  </div>
+  <div class="next"><span id="nextTxt"></span><span id="left"></span></div>
+  <div class="bar" id="bar"></div>
+  <div class="ctl"><button id="pause">Pause</button><button id="skip">Skip section</button><button id="end">End ride</button></div>
+  <div id="flash"><div class="big" id="fName"></div><p id="fSub"></p></div>
+</div>
+
+<div class="wrap" id="done">
+  <h1>Ride complete</h1>
+  <p class="sub" id="doneTxt"></p>
+  <button class="go" id="again">Back to setup</button>
+</div>
+
+<script>
+var K={warm:["Warm up","#2ec4b6"],flat:["Flat road","#ffd166"],climb:["Climb","#ff9f1c"],sprint:["Sprint","#ff3d81"],work:["Work hard","#ff5d5d"],rec:["Recover","#6ea8ff"],power:["Power push","#c77dff"],cool:["Cool down","#7bd88f"]};
+// k, seconds, resistance range, cadence range
+var P={
+ b:{warm:[0,[20,30],[70,80]],cool:[0,[15,25],[60,70]],
+    loop:[["flat",90,[30,40],[80,90]],["climb",60,[40,50],[65,75]],["rec",60,[25,30],[70,80]],["sprint",30,[35,40],[90,100]],["rec",60,[25,30],[70,80]]],
+    txt:"Moderate resistance, steady cadence, plenty of recovery."},
+ i:{warm:[0,[25,35],[75,85]],cool:[0,[20,30],[65,75]],
+    loop:[["flat",120,[40,50],[80,90]],["climb",90,[55,65],[60,70]],["rec",60,[30,35],[75,85]],["sprint",30,[45,55],[100,110]],["rec",45,[30,35],[75,85]]],
+    txt:"Heavier climbs, faster sprints, shorter breaks."},
+ a:{warm:[0,[30,40],[80,90]],cool:[0,[20,30],[70,80]],
+    loop:[["flat",120,[50,60],[85,95]],["climb",120,[70,80],[55,65]],["rec",45,[35,40],[80,90]],["power",60,[65,75],[90,100]],["sprint",30,[55,65],[110,120]],["rec",45,[35,40],[80,90]]],
+    txt:"Heavy climbs, hard sprints, little rest."}
+};
+var $=function(i){return document.getElementById(i)};
+var lvl="b",mins=20,segs=[],idx=0,el=0,tot=0,run=false,last=0,timerId=0,lastSec=-1,ac=null;
+
+var style="int";
+var S={
+ int:{n:"Intervals",txt:"A mix of flats, climbs, sprints and recoveries."},
+ hill:{n:"Hill climb",txt:"Long, heavy climbs with short recoveries between.",loop:[["climb",120,[40,50],[60,70]],["rec",60,[25,30],[70,80]],["climb",150,[45,55],[55,65]],["rec",60,[25,30],[70,80]]]},
+ end:{n:"Endurance",txt:"Long steady efforts at a sustainable cadence.",loop:[["flat",300,[30,40],[80,90]],["flat",180,[35,45],[85,95]],["rec",60,[25,30],[75,85]]]},
+ spr:{n:"Sprints",txt:"Short, fast bursts with longer recoveries.",loop:[["sprint",30,[35,45],[90,100]],["rec",60,[25,30],[70,80]],["sprint",20,[40,50],[95,105]],["rec",70,[25,30],[70,80]]]}
+};
+var OFF={b:[0,0],i:[12,4],a:[25,8]};
+S.tab={n:"Tabata",txt:"20 seconds hard, 10 seconds easy, 8 rounds, then a 1 minute reset.",loop:[]};
+for(var q=0;q<8;q++){S.tab.loop.push(["work",20,[35,45],[90,100]],["rec",10,[20,25],[60,70]])}
+S.tab.loop.push(["rec",60,[20,25],[60,70]]);
+S.hh={n:"Heart health",txt:"Mostly steady, comfortable riding with a few short pushes and long recoveries.",loop:[["flat",300,[30,40],[80,90]],["power",45,[38,48],[88,98]],["rec",90,[25,30],[70,80]],["flat",240,[32,42],[80,90]],["power",45,[38,48],[88,98]],["rec",90,[25,30],[70,80]]]};
+function loopFor(l){
+  if(style==="int")return P[l].loop;
+  var o=OFF[l];
+  return S[style].loop.map(function(s){return [s[0],s[1],[s[2][0]+o[0],Math.min(100,s[2][1]+o[0])],[s[3][0]+o[1],s[3][1]+o[1]]]});
+}
+function gen(m,l){
+  var T=m*60,p=P[l],wd=Math.max(120,Math.round(T*0.1/30)*30),out=[];
+  var main=T-wd*2,i=0,lp=loopFor(l);
+  out.push({k:"warm",d:wd,r:p.warm[1],c:p.warm[2]});
+  while(main>0){
+    var s=lp[i%lp.length];i++;
+    var d=Math.min(s[1],main);
+    if(main-d<20)d=main;
+    out.push({k:s[0],d:d,r:s[2],c:s[3]});main-=d;
+  }
+  out.push({k:"cool",d:wd,r:p.cool[1],c:p.cool[2]});
+  return out;
+}
+function fmt(s){s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+function rng(a){return a[0]+"–"+a[1]}
+
+function preview(){
+  segs=gen(mins,lvl);
+  $("lenOut").textContent=mins+" min";
+  $("lvlTxt").textContent=P[lvl].txt;
+  $("styleTxt").textContent=S[style].txt;
+  $("segCount").textContent=segs.length+" sections";
+  var h="";segs.forEach(function(s){var m=(s.r[0]+s.r[1])/2;h+='<i style="flex:'+s.d+';height:'+Math.round(m*1.1)+'%;background:'+K[s.k][1]+'"></i>'});
+  $("plan").innerHTML=h;
+  var used={};segs.forEach(function(s){used[s.k]=1});
+  $("legend").innerHTML=Object.keys(K).filter(function(k){return used[k]}).map(function(k){return '<span style="--k:'+K[k][1]+'">'+K[k][0]+'</span>'}).join("");
+}
+$("len").oninput=function(){mins=+this.value;preview()};
+$("styles").onclick=function(e){var b=e.target.closest("button");if(!b)return;style=b.dataset.s;[].forEach.call($("styles").children,function(x){x.setAttribute("aria-pressed",x===b)});preview()};
+$("lvls").onclick=function(e){var b=e.target.closest("button");if(!b)return;lvl=b.dataset.l;[].forEach.call($("lvls").children,function(x){x.setAttribute("aria-pressed",x===b)});preview()};
+
+function beep(f,d,v){if(!ac)return;try{var o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;o.type="sine";g.gain.value=v||.15;o.connect(g);g.connect(ac.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.stop(ac.currentTime+d)}catch(e){}}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+
+function show(flash){
+  var s=segs[idx],c=K[s.k][1];
+  $("ride").style.setProperty("--c",c);
+  $("name").textContent=K[s.k][0];
+  $("res").textContent=rng(s.r);$("cad").textContent=rng(s.c);
+  $("segOf").textContent="Section "+(idx+1)+" of "+segs.length;
+  var n=segs[idx+1];
+  $("nextTxt").textContent=n?"Next: "+K[n.k][0]+" · res "+rng(n.r)+" · "+rng(n.c)+" rpm":"Last section";
+  if(flash){
+    $("fName").textContent=K[s.k][0];
+    $("fSub").textContent="Resistance "+rng(s.r)+"  ·  Cadence "+rng(s.c);
+    var f=$("flash");f.style.animationDuration=s.d<=30?"1.2s":"2.4s";f.classList.remove("show");void f.offsetWidth;f.classList.add("show");
+    beep(880,.25,.2);setTimeout(function(){beep(1175,.35,.2)},180);buzz([200,80,200]);
+  }
+}
+function paint(){
+  var s=segs[idx],rem=s.d-el;
+  $("timer").textContent=fmt(rem);
+  var sec=Math.ceil(rem);
+  if(sec!==lastSec){lastSec=sec;if(sec<=3&&sec>0){var t=$("timer");t.classList.remove("pulse");void t.offsetWidth;t.classList.add("pulse");beep(660,.12,.15);buzz(40)}}
+  $("left").textContent=fmt(tot-sumDone()-el)+" left";
+  $("elapsed").textContent=fmt(sumDone()+el)+" ridden";
+  var b=$("bar").children;
+  for(var i=0;i<b.length;i++){b[i].firstChild.style.width=i<idx?"100%":i===idx?(el/s.d*100)+"%":"0"}
+}
+function sumDone(){var t=0;for(var i=0;i<idx;i++)t+=segs[i].d;return t}
+function next(){
+  idx++;el=0;lastSec=-1;
+  if(idx>=segs.length){finish(true);return}
+  show(true);
+}
+function tick(){
+  var now=Date.now();
+  if(run){el+=(now-last)/1000;
+    while(idx<segs.length&&el>=segs[idx].d){var carry=el-segs[idx].d;idx++;el=carry;lastSec=-1;if(idx>=segs.length){finish(true);return}show(true)}
+    paint()}
+  last=now;
+}
+function begin(){
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}
+  segs=gen(mins,lvl);tot=segs.reduce(function(a,s){return a+s.d},0);
+  idx=0;el=0;lastSec=-1;run=true;last=Date.now();
+  var h="";segs.forEach(function(s){h+='<div style="--d:'+s.d+'"><b></b></div>'});
+  $("bar").innerHTML=h;
+  $("setup").style.display="none";$("done").style.display="none";
+  $("ride").classList.add("on");$("pause").textContent="Pause";
+  show(true);paint();clearInterval(timerId);timerId=setInterval(tick,200);
+}
+function finish(ok){
+  clearInterval(timerId);run=false;
+  $("ride").classList.remove("on");
+  $("done").style.display="block";
+  $("doneTxt").textContent=ok?"You finished "+mins+" minutes of "+S[style].n.toLowerCase()+" at "+{b:"beginner",i:"intermediate",a:"advanced"}[lvl]+" level. Nice work.":"Ride ended early.";
+  if(ok){beep(784,.3);setTimeout(function(){beep(988,.3)},250);setTimeout(function(){beep(1319,.5)},500);buzz([300,100,300])}
+}
+$("start").onclick=begin;
+$("pause").onclick=function(){run=!run;last=Date.now();this.textContent=run?"Pause":"Resume"};
+$("skip").onclick=function(){if(idx<segs.length-1){next();paint()}else finish(true)};
+$("end").onclick=function(){finish(false)};
+$("again").onclick=function(){$("done").style.display="none";$("setup").style.display="block";preview()};
+preview();
+</script>
+</body>
+</html>
